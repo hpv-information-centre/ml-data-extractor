@@ -1,46 +1,80 @@
-from Functions.General_Functions import xl_export
-from Functions.ML_Functions import bag_of_words
-import numpy as np
-import nltk
-import re
-import math
-import requests
-from Bio import Entrez
+from __future__ import division
+from Functions.General_Functions import importFrom, pubmedInfoDownload, saveFile
+from Functions.ML_Functions import preprocessBy, generateNumbersDataFrame, classifyWith
+from Method_Handler import MethodHandler
 import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import metrics
 
-#Data export from excel
-_data = xl_export('Data/infocentre_data.xlsx')
-#########################
+############## FIRST DATA DOWNLOAD ##############
+# data = importFrom('xl', 'Data/infocentre_data.xlsx')
+# data = pubmedInfoDownload(data)
+# saveFile(data, './Data/AbstractDF.pkl')
+############## END FIRST DATA DOWNLOAD ##############
 
-#Entrez API calls
-_entrezRoot = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-_esummary = 'esummary.fcgi?db=pubmed&retmode=xml&id='
+data = importFrom('pkl', './Data/AbstractDF.pkl')
+if isinstance(data, pd.DataFrame):
+    ############## PREPROCESS TRAINING ##############
+    data = generateNumbersDataFrame(data)
+    #CUSTOM CROSS-VALIDATION
+    k = 10
+    IDF_list, pre_train, pre_test = preprocessBy('CV-TFIDF', data, k)
+    ############## END PREPROCESS TRAINING ##############
+    ############## MODEL TRAINING ##############
+    true_class, predicted_class, true_class_probs = classifyWith('CV-SVM', pre_train, pre_test)
+    ############## END MODEL TRAINING ##############
 
-_pmidsList = _data['pmid'].to_list()
-_PMIDS = ','.join(_pmidsList)
+    ############## GRAPHICS ##############
+    print('--------------------MODEL GENERAL METRICS---------------------')
+    #confusion matrix
+    cmatrix = metrics.confusion_matrix(true_class, predicted_class)
+    print('Confusion Matrix:\n', cmatrix)
+    #fscore
+    fscore = metrics.f1_score(true_class, predicted_class)
+    print('F-Score: ', fscore)
+    #cappa kohen
+    kappa = metrics.cohen_kappa_score(true_class, predicted_class)
+    print('Kappa Cohen: ', kappa)
 
-Entrez.email = 'marcarmenter@hotmail.com'
-_query = Entrez.efetch(db='pubmed', retmode='xml', report='abstract', id=_PMIDS) #_PMIDS, 24192311,23534783
-_res = Entrez.read(_query)
-#########################
+    #ROC
+    print('\n----------ROC----------')
+    fpr, tpr, thresholds = metrics.roc_curve(true_class, true_class_probs)
+    roc_auc = metrics.auc(fpr, tpr)
+    print('AUC: ', roc_auc)
+    #Perfect
+    plt.plot([0,1], [1,1], linestyle='--')
+    #Worst
+    plt.plot([0,1], [0,1], linestyle='--')
+    #Our model
+    plt.plot(fpr, tpr)
+    plt.show()
 
-#Extract Abstracts
-_articleList = _res['PubmedArticle']
-_abstracts = []
-for atcl in _articleList:
-    _abstracts.append(atcl['MedlineCitation']['Article']['Abstract']['AbstractText'][0])  #_abstracts = _res['PubmedArticle'][0]['MedlineCitation']['Article']['Abstract']['AbstractText'][0]
-#########################
+    #######################################Precision-Recall ######################################
+    print('\n----------Precision/Recall----------')
+    precision, recall, thresholds2 = metrics.precision_recall_curve(true_class, true_class_probs)
+    #AUC
+    auc = metrics.auc(recall, precision)
+    print('AUC: ', auc)
+    #no skill model
+    plt.plot([0,1], [0.5,0.5], marker='.')
+    #our model
+    plt.plot(recall, precision)
+    plt.show()
+    ############## END GRAPHICS ##############
 
-#Preprocessing (depends on method)
-ML_method = {
-    "BoW": bag_of_words(_data, _pmidsList, _abstracts, False, (1,1)),
-    #"KNN": knn('arg1', 'arg2')
-}
+else:
+    print('Method does NOT exist.')
 
-#1 BAG OF WORDS
-_preproc = ML_method["BoW"]
-print(_preproc['class_results'])
-#########################
+
+
+
+# keywordsICO = ['women', 'participants', 'subjects', 'attendants', 'controls']
+
+
+
+
+
+#IMPLEMENTAR CLASSIFICACIO AMB NN KERAS/TENSORFLOW
 
 
 
