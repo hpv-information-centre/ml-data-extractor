@@ -1,9 +1,9 @@
+from Method_Handler import MethodHandler
 import xlrd
 import numpy as np 
 import pandas as pd
 import requests
 from Bio import Entrez
-from Method_Handler import MethodHandler
 
 def importFrom(type='xl', *args):
     return importHandler.execMethod(type, None, *args)
@@ -82,6 +82,7 @@ def isNaN(val):
 
 #getNContext
 def getNContext(atcl, index, n):
+    candidate = atcl[index]
     if index < n:
         context = atcl[:index]
     else:
@@ -90,9 +91,32 @@ def getNContext(atcl, index, n):
         context.extend(atcl[index:])
     else:
         context.extend(atcl[index:(index+n)])
-    return context
+    position = context.index(candidate)
+    distances = []
+    if position != None:
+        for cindex in range(len(context)):
+           distances.append(abs(position-cindex))
+        context, distances = filterNumbers_MaintainDistances(context, distances)
+    else:
+        context = filterNumbers(context)
+    return context, distances
 ####################
 
+def filterNumbers(doc):
+    d = []
+    for token in doc:
+        if isNaN(token):
+            d.append(token)
+    return d
+
+def filterNumbers_MaintainDistances(doc, distances):
+    d = []
+    c = []
+    for i, token in enumerate(doc):
+        if isNaN(token):
+            d.append(token)
+            c.append(distances[i])
+    return d, c
 #pad_array
 def pad_array(array, length):
     if array == None: array = []
