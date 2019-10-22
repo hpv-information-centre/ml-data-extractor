@@ -1,0 +1,12 @@
+{% extends "abstract_demo_app/base.html" %}
+{% block content %}
+    <div class='container pb-4' style="border-bottom: 1px solid #444444">
+        <form id="article_form">
+            {% csrf_token %}
+            <span>Introduce article ID</span>            
+            <input class='ml-2' type='text' maxlength="8" id='artID' name='artID' placeholder='Article ID' />
+            <button type="button" class='ml-2 regular_button' onclick="getArticle('#artID')">Search</button>
+        </form>
+    </div>
+    <div id="abstract_container" class="container"></div>
+{% endblock content %}

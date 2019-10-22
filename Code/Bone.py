@@ -23,7 +23,7 @@ data = importFrom('pkl', './Data/AbstractDF.pkl')
 if isinstance(data, pd.DataFrame):
     ############## PREPROCESS TRAINING ##############
     data = generateNumbersDataFrame(data)
-    data.to_excel('./Data/NumbersDF.xlsx') #save df to excel
+    saveFile(data, './Data/NumbersDF.pkl') #save df to excel
     #CUSTOM CROSS-VALIDATION
     k = 10
     IDF_list, pre_train, pre_test = preprocessBy('CV-TFIDF', data, k)
